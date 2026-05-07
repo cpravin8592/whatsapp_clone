@@ -1,34 +1,30 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:whatsapp_clone/domain/constants/app_constants.dart';
+import 'package:whatsapp_clone/domain/utils/app_colors.dart';
+import 'package:whatsapp_clone/domain/utils/routes.dart';
 
-import '../../domain/utils/app_colors.dart';
-import '../../domain/utils/routes.dart';
-
-class RegisterScreen extends StatefulWidget {
-  RegisterScreen({super.key});
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _tecName = TextEditingController(),
       _tecEmail = TextEditingController(),
-      _tecPassword = TextEditingController(),
-      _tecCnfPassword = TextEditingController();
+      _tecPassword = TextEditingController();
 
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-
   bool isPwdVisible = false, isCnfPwdVisible = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.whatsAppGreen,
-      ),
+      appBar: AppBar(backgroundColor: Colors.white),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -40,28 +36,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 spacing: 16,
                 children: [
                   Text(
-                    "Register",
-                    textAlign: .start,
+                    "Login",
                     style: TextStyle(
                       fontWeight: .w700,
                       color: AppColors.whatsAppGreen,
                       fontSize: 32,
-                    ),
-                  ),
-                  TextFormField(
-                    validator: (value) {
-                      if (value != null && value.isEmpty) {
-                        return "Name can't be empty";
-                      }
-                      return null;
-                    },
-                    controller: _tecName,
-                    style: TextStyle(fontSize: 18),
-                    decoration: InputDecoration(
-                      hintText: "Enter your name",
-                      hintStyle: TextStyle(fontSize: 18),
-                      labelText: "Your Name Here",
-                      labelStyle: TextStyle(fontSize: 18),
                     ),
                   ),
                   TextFormField(
@@ -110,36 +89,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                   ),
-                  TextFormField(
-                    obscureText: !isCnfPwdVisible,
-                    validator: (value) {
-                      if (value != null && value != _tecPassword.text) {
-                        return "Password and Confirm Password must match!";
-                      }
-                      return null;
-                    },
-                    controller: _tecCnfPassword,
-                    style: TextStyle(fontSize: 18),
-                    decoration: InputDecoration(
-                      hintText: "Confirm password",
-                      hintStyle: TextStyle(fontSize: 18),
-                      labelText: "Confirm Password Here",
-                      labelStyle: TextStyle(fontSize: 18),
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          setState(() {
-                            isCnfPwdVisible = !isCnfPwdVisible;
-                          });
-                        },
-                        icon: Icon(
-                          isCnfPwdVisible
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: AppColors.whatsAppGreen,
-                        ),
-                      ),
-                    ),
-                  ),
                   SizedBox(height: 16),
                   SizedBox(
                     width: .infinity,
@@ -149,33 +98,49 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       onPressed: () async {
                         if (formKey.currentState!.validate()) {
-                          //code for registration
                           FirebaseAuth auth = FirebaseAuth.instance;
                           UserCredential userCred = await auth
-                              .createUserWithEmailAndPassword(
+                              .signInWithEmailAndPassword(
                                 email: _tecEmail.text,
                                 password: _tecPassword.text,
                               );
                           if (userCred.user != null) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  backgroundColor: Colors.green.shade700,
-                                  content: Text(
-                                    "User registered successfully!",
-                                    style: TextStyle(color: Colors.white),
-                                  ),
+                            SharedPreferences prefs =
+                                await SharedPreferences.getInstance();
+                            prefs.setString(
+                              AppConstants.keyUserId,
+                              userCred.user!.uid,
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: AppColors.whatsAppGreen,
+                                content: Text(
+                                  "User logged in successfully!",
+                                  style: TextStyle(color: Colors.white),
                                 ),
-                              );
-                              Navigator.pop(context);
-                            }
+                              ),
+                            );
+                            Navigator.pushReplacementNamed(
+                              context,
+                              AppRoutes.dashboard,
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: Colors.red.shade700,
+                                content: Text(
+                                  "Email / Password incorrect!",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            );
                           }
                         }
                       },
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Text(
-                          "Register",
+                          "Login",
                           style: TextStyle(color: Colors.white, fontSize: 20),
                         ),
                       ),
@@ -184,15 +149,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   RichText(
                     textAlign: .center,
                     text: TextSpan(
-                      text: "Already have an account?",
+                      text: "Don't have an account?",
                       style: TextStyle(color: Colors.black, fontSize: 16),
                       children: [
                         WidgetSpan(child: SizedBox(width: 4)),
                         WidgetSpan(
                           child: InkWell(
-                            onTap: () => Navigator.pop(context),
+                            onTap: () => Navigator.pushNamed(
+                              context,
+                              AppRoutes.register,
+                            ),
                             child: Text(
-                              "Click here to login",
+                              "Click here to register",
                               style: TextStyle(
                                 color: AppColors.whatsAppGreen,
                                 fontSize: 16,

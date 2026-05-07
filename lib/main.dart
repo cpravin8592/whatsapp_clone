@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:whatsapp_clone/domain/utils/app_colors.dart';
 import 'package:whatsapp_clone/domain/utils/routes.dart';
 import 'package:whatsapp_clone/firebase_options.dart';
 
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
-      theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.deepPurple)),
+      theme: ThemeData(colorScheme: .fromSeed(seedColor: AppColors.whatsAppGreen)),
       initialRoute: AppRoutes.splash,
       routes: AppRoutes.routes,
     );
