@@ -50,12 +50,14 @@ class _ContactsPageState extends State<ContactsPage> {
               ],
             ),
           ),
-          Expanded(flex: 1,
+          Expanded(
+            flex: 1,
             child: BlocBuilder<ContactsCubit, ContactsState>(
               builder: (context, state) {
                 if (state is ContactsLoadingState) {
                   return Center(
                     child: Column(
+                      mainAxisAlignment: .center,
                       spacing: 16,
                       children: [
                         CircularProgressIndicator(
