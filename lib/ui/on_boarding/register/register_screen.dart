@@ -1,8 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:whatsapp_clone/data/model/user.dart';
 
-import '../../domain/utils/app_colors.dart';
-import '../../domain/utils/routes.dart';
+import '../../../domain/utils/app_colors.dart';
+import 'cubit/register_cubit.dart';
+import 'cubit/register_state.dart';
 
 class RegisterScreen extends StatefulWidget {
   RegisterScreen({super.key});
@@ -143,42 +145,73 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   SizedBox(height: 16),
                   SizedBox(
                     width: .infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF1DAA61),
-                      ),
-                      onPressed: () async {
-                        if (formKey.currentState!.validate()) {
-                          //code for registration
-                          FirebaseAuth auth = FirebaseAuth.instance;
-                          UserCredential userCred = await auth
-                              .createUserWithEmailAndPassword(
-                                email: _tecEmail.text,
-                                password: _tecPassword.text,
-                              );
-                          if (userCred.user != null) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  backgroundColor: Colors.green.shade700,
-                                  content: Text(
-                                    "User registered successfully!",
-                                    style: TextStyle(color: Colors.white),
-                                  ),
+                    child: BlocConsumer<RegisterCubit, RegisterState>(
+                      listener: (context, state) {
+                        if (state is RegisterSuccessState) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: Colors.green.shade700,
+                                content: Text(
+                                  "User registered successfully!",
+                                  style: TextStyle(color: Colors.white),
                                 ),
-                              );
-                              Navigator.pop(context);
-                            }
+                              ),
+                            );
+                            Navigator.pop(context);
+                          }
+                        } else if (state is RegisterErrorState) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: Colors.red.shade700,
+                                content: Text(
+                                  state.errMessage,
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            );
                           }
                         }
                       },
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Text(
-                          "Register",
-                          style: TextStyle(color: Colors.white, fontSize: 20),
-                        ),
-                      ),
+                      builder: (context, state) {
+                        return ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF1DAA61),
+                          ),
+                          onPressed: () async {
+                            if (formKey.currentState!.validate()) {
+                              User user = User(
+                                userId: null,
+                                name: _tecName.text,
+                                email: _tecEmail.text,
+                                createdAt:
+                                    DateTime.now().millisecondsSinceEpoch,
+                                isOnline: false,
+                                status: 1,
+                                profilePic: "",
+                                profileStatus: 1,
+                              );
+                              context.read<RegisterCubit>().registerUser(
+                                user,
+                                _tecPassword.text,
+                              );
+                            }
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: state is RegisterLoadingState
+                                ? CircularProgressIndicator(color: Colors.white)
+                                : Text(
+                                    "Register",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                    ),
+                                  ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                   RichText(

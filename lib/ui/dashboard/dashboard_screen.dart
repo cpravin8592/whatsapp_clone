@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:whatsapp_clone/domain/utils/app_colors.dart';
 import 'package:whatsapp_clone/ui/dashboard/call_screen.dart';
-import 'package:whatsapp_clone/ui/dashboard/chat_screen.dart';
+import 'package:whatsapp_clone/ui/dashboard/home_screen.dart';
 import 'package:whatsapp_clone/ui/dashboard/community_screen.dart';
 import 'package:whatsapp_clone/ui/dashboard/updates_screen.dart';
-import 'package:whatsapp_clone/ui/dashboard/whatsapp_home.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -16,7 +15,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int selectedIdx = 0;
   List<Widget> navScreens = [
-    ChatScreen(),
+    HomeScreen(),
     UpdatesScreen(),
     CommunityScreen(),
     CallScreen(),
@@ -70,7 +69,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         backgroundColor: Colors.white,
         elevation: 4,
         onDestinationSelected: (position) {
-          debugPrint("Idx : $position");
           if (position != selectedIdx) {
             setState(() {
               selectedIdx = position;
@@ -78,10 +76,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           }
         },
         selectedIndex: selectedIdx,
-        labelTextStyle: WidgetStatePropertyAll(TextStyle(
-          fontSize: 15,
-          fontWeight: .w500
-        )),
+        labelTextStyle: WidgetStatePropertyAll(
+          TextStyle(fontSize: 15, fontWeight: .w500),
+        ),
       ),
     );
   }
