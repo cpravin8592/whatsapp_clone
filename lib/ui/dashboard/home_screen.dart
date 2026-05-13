@@ -168,7 +168,7 @@ class HomeScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 return InkWell(
                   onTap: () {
-                    Navigator.pushNamed(context, AppRoutes.chats);
+                    // Navigator.pushNamed(context, AppRoutes.chats);
                   },
                   child: Padding(
                     padding: .all(16),

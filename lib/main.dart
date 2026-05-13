@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Whatsapp Clone',
       theme: ThemeData(colorScheme: .fromSeed(seedColor: AppColors.whatsAppGreen)),
       initialRoute: AppRoutes.splash,
       routes: AppRoutes.routes,

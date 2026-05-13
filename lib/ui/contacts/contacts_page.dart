@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:whatsapp_clone/data/model/user.dart';
 import 'package:whatsapp_clone/domain/utils/app_colors.dart';
+import 'package:whatsapp_clone/domain/utils/app_utils.dart';
+import 'package:whatsapp_clone/domain/utils/routes.dart';
 import 'package:whatsapp_clone/ui/contacts/cubit/contacts_cubit.dart';
 import 'package:whatsapp_clone/ui/contacts/cubit/contacts_state.dart';
 
@@ -84,47 +86,56 @@ class _ContactsPageState extends State<ContactsPage> {
                           AppColors.dpBgColors[Random().nextInt(
                             AppColors.dpBgColors.length - 1,
                           )];
-                      return Padding(
-                        padding: .all(16),
-                        child: Row(
-                          spacing: 16,
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: bgColor.withAlpha(32),
-                              radius: 36,
-                              child: Center(
-                                child: Text(
-                                  getInitials(user.name!),
-                                  style: TextStyle(
-                                    letterSpacing: 1.5,
-                                    fontSize: 28,
-                                    fontWeight: .w600,
-                                    color: bgColor,
+                      return InkWell(
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.chats,
+                            arguments: user,
+                          );
+                        },
+                        child: Padding(
+                          padding: .all(16),
+                          child: Row(
+                            spacing: 16,
+                            children: [
+                              CircleAvatar(
+                                backgroundColor: bgColor.withAlpha(32),
+                                radius: 36,
+                                child: Center(
+                                  child: Text(
+                                    AppUtils.getInitials(user.name!),
+                                    style: TextStyle(
+                                      letterSpacing: 1.5,
+                                      fontSize: 28,
+                                      fontWeight: .w600,
+                                      color: bgColor,
+                                    ),
+                                    textAlign: .center,
                                   ),
-                                  textAlign: .center,
                                 ),
                               ),
-                            ),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: .start,
-                                mainAxisSize: .min,
-                                children: [
-                                  Text(
-                                    user.name!,
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: .w600,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: .start,
+                                  mainAxisSize: .min,
+                                  children: [
+                                    Text(
+                                      user.name!,
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: .w600,
+                                      ),
                                     ),
-                                  ),
-                                  Text(
-                                    user.email!,
-                                    style: TextStyle(fontSize: 20),
-                                  ),
-                                ],
+                                    Text(
+                                      user.email!,
+                                      style: TextStyle(fontSize: 20),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       );
                     },
@@ -139,16 +150,5 @@ class _ContactsPageState extends State<ContactsPage> {
         ],
       ),
     );
-  }
-
-  String getInitials(String name) {
-    String initials = "";
-    name.split(" ").forEach((e) {
-      initials += e[0];
-    });
-    if (initials.length >= 2) {
-      return initials.substring(0, 2);
-    }
-    return initials;
   }
 }

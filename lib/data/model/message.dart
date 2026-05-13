@@ -1,6 +1,6 @@
 class Message {
   String? msgId;
-  String? message;
+  String? message, imageUrl;
   int? sentAt, recAt, readAt;
   String? fromId, toId;
   int? msgType;
@@ -8,6 +8,7 @@ class Message {
   Message({
     required this.msgId,
     required this.message,
+    required this.imageUrl,
     required this.sentAt,
     required this.recAt,
     required this.readAt,
@@ -19,6 +20,7 @@ class Message {
   Map<String, dynamic> toMap() => {
     "msgId": msgId,
     "message": message,
+    "imageUrl": imageUrl,
     "sentAt": sentAt,
     "recAt": recAt,
     "readAt": readAt,
@@ -30,6 +32,7 @@ class Message {
   factory Message.fromMap(Map<String, dynamic> map) => Message(
     msgId: map["msgId"],
     message: map["message"],
+    imageUrl: map["imageUrl"],
     sentAt: map["sentAt"],
     recAt: map["recAt"],
     readAt: map["readAt"],

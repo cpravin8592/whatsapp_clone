@@ -1,13 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:whatsapp_clone/data/model/user.dart';
+import 'package:whatsapp_clone/data/remote/repository/firebase_repository.dart';
 import 'package:whatsapp_clone/domain/utils/app_colors.dart';
+import 'package:whatsapp_clone/domain/utils/app_utils.dart';
 
-class ChatScreen extends StatelessWidget {
-  ChatScreen({super.key});
+class ChatScreen extends StatefulWidget {
+  const ChatScreen({super.key});
 
+  @override
+  State<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
   int messageType = 1;
+
+  final TextEditingController _tecMessage = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _tecMessage.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    User user = ModalRoute.of(context)!.settings.arguments as User;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -22,7 +44,7 @@ class ChatScreen extends StatelessWidget {
               radius: 24,
               child: Center(
                 child: Text(
-                  "PC",
+                  AppUtils.getInitials(user.name!),
                   style: TextStyle(
                     letterSpacing: 1.5,
                     fontSize: 18,
@@ -39,10 +61,12 @@ class ChatScreen extends StatelessWidget {
                 mainAxisSize: .min,
                 children: [
                   Text(
-                    "Pravin Chavan",
-                    style: TextStyle(fontSize: 18, fontWeight: .w600),
+                    user.name!,
+                    style: TextStyle(fontSize: 20, fontWeight: .w600),
                   ),
-                  Text("online", style: TextStyle(fontSize: 14)),
+                  user.isOnline ?? false
+                      ? Text("online", style: TextStyle(fontSize: 14))
+                      : const SizedBox.shrink(),
                 ],
               ),
             ),
@@ -124,27 +148,63 @@ class ChatScreen extends StatelessWidget {
                         children: [
                           IconButton(
                             onPressed: () {},
-                            icon: Icon(Icons.emoji_emotions_outlined,fontWeight: .w700,),
+                            icon: Icon(
+                              Icons.emoji_emotions_outlined,
+                              fontWeight: .w700,
+                            ),
                           ),
-                          Expanded(child: TextField(decoration: InputDecoration(
-                            border: .none
-                          ),)),
+                          Expanded(
+                            child: TextField(
+                              controller: _tecMessage,
+                              decoration: InputDecoration(border: .none),
+                            ),
+                          ),
                           IconButton(
                             onPressed: () {},
-                            icon: Icon(Icons.attach_file_rounded,fontWeight: .w700,),
+                            icon: Icon(
+                              Icons.attach_file_rounded,
+                              fontWeight: .w700,
+                            ),
                           ),
                           IconButton(
                             onPressed: () {},
-                            icon: Icon(Icons.camera_alt_outlined,fontWeight: .w700,),
+                            icon: Icon(
+                              Icons.camera_alt_outlined,
+                              fontWeight: .w700,
+                            ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  IconButton(style: IconButton.styleFrom(
-                    backgroundColor: AppColors.whatsAppGreen,
-                    foregroundColor: Colors.white
-                  ),onPressed: (){}, icon: Icon(Icons.mic))
+                  IconButton(
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.whatsAppGreen,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () {
+                      try {
+                        FirebaseRepository.sendMessage(
+                          user.userId!,
+                          1,
+                          _tecMessage.text,
+                          null,
+                        );
+                        _tecMessage.clear();
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            backgroundColor: Colors.red.shade700,
+                            content: Text(
+                              e.toString(),
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    icon: Icon(Icons.send_rounded),
+                  ),
                 ],
               ),
             ),

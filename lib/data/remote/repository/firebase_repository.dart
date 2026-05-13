@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:whatsapp_clone/data/model/message.dart';
 import 'package:whatsapp_clone/data/model/user.dart' as Model;
 
 import '../../../domain/constants/app_constants.dart';
@@ -10,6 +11,8 @@ class FirebaseRepository {
   static final FirebaseFirestore fireStore = FirebaseFirestore.instance;
 
   static const String collectionUsers = "users";
+  static const String collectionChatroom = "chatroom";
+  static const String collectionMessages = "messages";
 
   Future<void> registerUser(Model.User user, String pass) async {
     try {
@@ -58,6 +61,55 @@ class FirebaseRepository {
   Future<QuerySnapshot<Map<String, dynamic>>> getAllUsers() async {
     try {
       return await fireStore.collection(collectionUsers).get();
+    } catch (e) {
+      throw Exception(e.toString());
+    }
+  }
+
+  static Future<String> getCurrentUserId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString(AppConstants.keyUserId) ?? "";
+  }
+
+  static String getChatroomId(String fromId, String toId) {
+    if (fromId.hashCode <= toId.hashCode) {
+      return "${fromId}_$toId";
+    }
+    return "${toId}_$fromId";
+  }
+
+  static Future<void> sendMessage(
+    String toId,
+    int msgType,
+    String? msg,
+    String? imageUrl,
+  ) async {
+    String fromId = await getCurrentUserId();
+    String chatroomId = getChatroomId(fromId, toId);
+    int currTime = DateTime.now().millisecondsSinceEpoch;
+
+    Message message = Message(
+      msgId: "$currTime",
+      message: msg,
+      imageUrl: imageUrl,
+      sentAt: currTime,
+      recAt: null,
+      readAt: null,
+      fromId: fromId,
+      toId: toId,
+      msgType: msgType,
+    );
+
+    try {
+      await fireStore
+          .collection(collectionChatroom)
+          .doc(chatroomId)
+          .collection(collectionMessages)
+          .doc("$currTime")
+          .set(message.toMap())
+          .onError((e, s) {
+            throw Exception(e.toString());
+          });
     } catch (e) {
       throw Exception(e.toString());
     }
