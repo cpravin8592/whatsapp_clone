@@ -83,6 +83,7 @@ class FirebaseRepository {
     int msgType,
     String? msg,
     String? imageUrl,
+    bool isNewConversation,
   ) async {
     String fromId = await getCurrentUserId();
     String chatroomId = getChatroomId(fromId, toId);
@@ -101,6 +102,17 @@ class FirebaseRepository {
     );
 
     try {
+      if (isNewConversation) {
+        await fireStore
+            .collection(collectionChatroom)
+            .doc(chatroomId)
+            .set({
+              "ids": [fromId, toId],
+            })
+            .onError((e, s) {
+              throw Exception(e.toString());
+            });
+      }
       await fireStore
           .collection(collectionChatroom)
           .doc(chatroomId)
@@ -113,5 +125,74 @@ class FirebaseRepository {
     } catch (e) {
       throw Exception(e.toString());
     }
+  }
+
+  static Stream<QuerySnapshot<Map<String, dynamic>>> getChatStream(
+    String fromId,
+    String toId,
+  ) {
+    return fireStore
+        .collection(collectionChatroom)
+        .doc(getChatroomId(fromId, toId))
+        .collection(collectionMessages)
+        .snapshots();
+  }
+
+  static Stream<QuerySnapshot<Map<String, dynamic>>> getContacts(
+    String fromId,
+  ) {
+    try {
+      return fireStore
+          .collection(collectionChatroom)
+          .where("ids", arrayContains: fromId)
+          .snapshots();
+    } catch (e) {
+      throw Exception(e.toString());
+    }
+  }
+
+  static Future<DocumentSnapshot<Map<String, dynamic>>> getUserFromUserId(
+    String userId,
+  ) {
+    return fireStore.collection(collectionUsers).doc(userId).get();
+  }
+
+  static void updateMessageReadStatus(
+    String fromId,
+    String toId,
+    String msdId,
+  ) {
+    fireStore
+        .collection(collectionChatroom)
+        .doc(getChatroomId(fromId, toId))
+        .collection(collectionMessages)
+        .doc(msdId)
+        .update({"readAt": DateTime.now().millisecondsSinceEpoch});
+  }
+
+  static Stream<QuerySnapshot<Map<String, dynamic>>> getLastMessage(
+    String fromId,
+    String toId,
+  ) {
+    return fireStore
+        .collection(collectionChatroom)
+        .doc(getChatroomId(fromId, toId))
+        .collection(collectionMessages)
+        .orderBy("sentAt", descending: true)
+        .limit(1)
+        .snapshots();
+  }
+
+  static Stream<QuerySnapshot<Map<String, dynamic>>> getUnreadCount(
+    String fromId,
+    String toId,
+  ) {
+    return fireStore
+        .collection(collectionChatroom)
+        .doc(getChatroomId(fromId, toId))
+        .collection(collectionMessages)
+        .where("fromId", isEqualTo: toId)
+        .where("readAt", isNull: true)
+        .snapshots();
   }
 }

@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 class AppUtils {
   AppUtils._();
 
@@ -10,5 +12,11 @@ class AppUtils {
       return initials.substring(0, 2);
     }
     return initials;
+  }
+
+  static String getMessageTime(int timeInMillis) {
+    return DateFormat(
+      "HH:mm",
+    ).format(DateTime.fromMillisecondsSinceEpoch(timeInMillis));
   }
 }

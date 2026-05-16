@@ -1,13 +1,32 @@
+import 'dart:math';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:whatsapp_clone/data/model/message.dart';
+import 'package:whatsapp_clone/data/model/user.dart';
+import 'package:whatsapp_clone/data/remote/repository/firebase_repository.dart';
+import 'package:whatsapp_clone/domain/utils/app_utils.dart';
 import 'package:whatsapp_clone/domain/utils/routes.dart';
 
 import '../../domain/utils/app_colors.dart';
 import '../../domain/utils/mock_data.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String currUserId = "";
+
+  @override
+  void initState() {
+    super.initState();
+    getCurrUserId();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -162,163 +181,231 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              itemCount: chats.length,
-              shrinkWrap: true,
-              itemBuilder: (context, index) {
-                return InkWell(
-                  onTap: () {
-                    // Navigator.pushNamed(context, AppRoutes.chats);
-                  },
-                  child: Padding(
-                    padding: .all(16),
-                    child: Row(
-                      children: [
-                        Stack(
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: chats[index].bgColor.withAlpha(
-                                32,
-                              ),
-                              radius: 36,
-                              child: Center(
-                                child: Text(
-                                  chats[index].initials,
-                                  style: TextStyle(
-                                    letterSpacing: 1.5,
-                                    fontSize: 28,
-                                    fontWeight: .w600,
-                                    color: chats[index].bgColor,
-                                  ),
-                                  textAlign: .center,
-                                ),
-                              ),
-                            ),
-                            Visibility(
-                              visible: chats[index].isTimerOn,
-                              child: Positioned(
-                                top: 48,
-                                left: 48,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    shape: .circle,
-                                    color: Colors.white,
-                                  ),
-                                  padding: .all(1),
-                                  child: Icon(Icons.access_time_rounded),
-                                ),
-                              ),
-                            ),
-                          ],
+            child: StreamBuilder(
+              stream: FirebaseRepository.getContacts(currUserId),
+              builder: (context, snapshot) {
+                if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                  List<String> uids = snapshot.data!.docs.map<String>((e) {
+                    List<dynamic> ids = e.data()["ids"];
+                    ids.remove(currUserId);
+                    return ids[0];
+                  }).toList();
+                  return ListView.builder(
+                    itemCount: uids.length,
+                    shrinkWrap: true,
+                    itemBuilder: (context, index) {
+                      return FutureBuilder(
+                        future: FirebaseRepository.getUserFromUserId(
+                          uids[index],
                         ),
-                        Expanded(
-                          child: Column(
-                            mainAxisSize: .min,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(left: 16.0),
+                        builder: (ctx, userSnap) {
+                          if (userSnap.hasData && userSnap.data!.exists) {
+                            User user = User.fromMap(userSnap.data!.data()!);
+                            final Color bgColor =
+                                AppColors.dpBgColors[Random().nextInt(
+                                  AppColors.dpBgColors.length - 1,
+                                )];
+                            return InkWell(
+                              onTap: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.chats,
+                                  arguments: user,
+                                );
+                              },
+                              child: Padding(
+                                padding: .all(16),
                                 child: Row(
-                                  mainAxisAlignment: .spaceBetween,
+                                  spacing: 16,
                                   children: [
-                                    Text(
-                                      chats[index].name,
-                                      style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: .w600,
+                                    CircleAvatar(
+                                      backgroundColor: bgColor.withAlpha(32),
+                                      radius: 36,
+                                      child: Center(
+                                        child: Text(
+                                          AppUtils.getInitials(user.name!),
+                                          style: TextStyle(
+                                            letterSpacing: 1.5,
+                                            fontSize: 28,
+                                            fontWeight: .w600,
+                                            color: bgColor,
+                                          ),
+                                          textAlign: .center,
+                                        ),
                                       ),
                                     ),
-                                    Text(
-                                      chats[index].time,
-                                      style: TextStyle(
-                                        color: chats[index].unreadCnt > 0
-                                            ? AppColors.whatsAppGreen
-                                            : Colors.grey,
-                                        fontWeight: .w400,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Padding(
-                                padding: .only(left: 16),
-                                child: Row(
-                                  children: [
-                                    Visibility(
-                                      visible: chats[index].isSent,
-                                      child: Icon(
-                                        Icons.done_all_rounded,
-                                        color: chats[index].isRead
-                                            ? Colors.blue
-                                            : Colors.grey,
-                                      ),
-                                    ),
-                                    SizedBox(width: 8),
                                     Expanded(
-                                      child: chats[index].messageType == 3
-                                          ? Row(
-                                              children: [
-                                                Icon(
-                                                  Icons
-                                                      .video_camera_back_rounded,
-                                                ),
-                                                SizedBox(width: 4),
-                                                Text(
-                                                  "Video",
+                                      child: Column(
+                                        crossAxisAlignment: .start,
+                                        mainAxisSize: .min,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  user.name!,
                                                   style: TextStyle(
-                                                    fontSize: 18,
+                                                    fontSize: 24,
+                                                    fontWeight: .w600,
                                                   ),
                                                 ),
-                                              ],
-                                            )
-                                          : chats[index].messageType == 2
-                                          ? Row(
-                                              children: [
-                                                Icon(Icons.image),
-                                                SizedBox(width: 4),
-                                                Text(
-                                                  "Image",
-                                                  style: TextStyle(
-                                                    fontSize: 18,
-                                                  ),
-                                                ),
-                                              ],
-                                            )
-                                          : Text(
-                                              chats[index].message,
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                overflow: .ellipsis,
                                               ),
-                                            ),
-                                    ),
-                                    SizedBox(width: 8),
-                                    Visibility(
-                                      visible: chats[index].unreadCnt > 0,
-                                      child: Badge.count(
-                                        padding: .symmetric(vertical: 4),
-                                        count: chats[index].unreadCnt,
-                                        textColor: Colors.white,
-                                        textStyle: TextStyle(fontSize: 16),
-                                        backgroundColor:
-                                            AppColors.whatsAppGreen,
+                                              StreamBuilder(
+                                                stream:
+                                                    FirebaseRepository.getLastMessage(
+                                                      currUserId,
+                                                      user.userId!,
+                                                    ),
+                                                builder: (ctx, lastMsgSnap) {
+                                                  if (lastMsgSnap.hasData &&
+                                                      lastMsgSnap
+                                                          .data!
+                                                          .docs
+                                                          .isNotEmpty) {
+                                                    Message lastMsg =
+                                                        Message.fromMap(
+                                                          lastMsgSnap
+                                                              .data!
+                                                              .docs[0]
+                                                              .data(),
+                                                        );
+                                                    return Row(
+                                                      spacing: 4,
+                                                      children: [
+                                                        Text(
+                                                          AppUtils.getMessageTime(
+                                                            lastMsg.sentAt ?? 0,
+                                                          ),
+                                                          style: TextStyle(
+                                                            fontSize: 16,
+                                                            color: AppColors
+                                                                .whatsAppGreen,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  }
+                                                  return const SizedBox.shrink();
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                          Row(
+                                            spacing: 8,
+                                            children: [
+                                              Expanded(
+                                                child: StreamBuilder(
+                                                  stream:
+                                                      FirebaseRepository.getLastMessage(
+                                                        currUserId,
+                                                        user.userId!,
+                                                      ),
+                                                  builder: (ctx, lastMsgSnap) {
+                                                    if (lastMsgSnap.hasData &&
+                                                        lastMsgSnap
+                                                            .data!
+                                                            .docs
+                                                            .isNotEmpty) {
+                                                      Message lastMsg =
+                                                          Message.fromMap(
+                                                            lastMsgSnap
+                                                                .data!
+                                                                .docs[0]
+                                                                .data(),
+                                                          );
+                                                      return Row(
+                                                        spacing: 4,
+                                                        children: [
+                                                          lastMsg.fromId ==
+                                                                  currUserId
+                                                              ? Icon(
+                                                                  Icons
+                                                                      .done_all_rounded,
+                                                                  color:
+                                                                      lastMsg.readAt !=
+                                                                          null
+                                                                      ? Colors
+                                                                            .blueAccent
+                                                                      : Colors
+                                                                            .grey
+                                                                            .shade500,
+                                                                  size: 16,
+                                                                  fontWeight:
+                                                                      .w700,
+                                                                )
+                                                              : const SizedBox.shrink(),
+                                                          Text(
+                                                            lastMsg.message ??
+                                                                "",
+                                                            style: TextStyle(
+                                                              fontSize: 16,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      );
+                                                    }
+                                                    return const SizedBox.shrink();
+                                                  },
+                                                ),
+                                              ),
+                                              StreamBuilder(
+                                                stream:
+                                                    FirebaseRepository.getUnreadCount(
+                                                      currUserId,
+                                                      user.userId!,
+                                                    ),
+                                                builder: (ctx, unreadCntSnap) {
+                                                  if (unreadCntSnap.hasData &&
+                                                      unreadCntSnap
+                                                          .data!
+                                                          .docs
+                                                          .isNotEmpty) {
+                                                    return Container(
+                                                      decoration: BoxDecoration(
+                                                        color: AppColors
+                                                            .whatsAppGreen,
+                                                        shape: .circle,
+                                                      ),
+                                                      padding: .all(8),
+                                                      child: Text(
+                                                        "${unreadCntSnap.data!.docs.length}",
+                                                        style: TextStyle(
+                                                          fontSize: 16,
+                                                          color: Colors.white
+                                                        ),
+                                                      ),
+                                                    );
+                                                  }
+                                                  return const SizedBox.shrink();
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      );
+                    },
+                  );
+                }
+                return const SizedBox.shrink();
               },
             ),
           ),
         ],
       ),
     );
+  }
+
+  void getCurrUserId() async {
+    currUserId = await FirebaseRepository.getCurrentUserId();
+    setState(() {});
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:whatsapp_clone/data/model/message.dart';
 import 'package:whatsapp_clone/data/model/user.dart';
 import 'package:whatsapp_clone/data/remote/repository/firebase_repository.dart';
 import 'package:whatsapp_clone/domain/utils/app_colors.dart';
@@ -12,13 +13,19 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  int messageType = 1;
-
+  String currUid = "";
   final TextEditingController _tecMessage = TextEditingController();
+  bool _isNewConversation = true;
 
   @override
   void initState() {
     super.initState();
+    getCurrentUserId();
+  }
+
+  void getCurrentUserId() async {
+    currUid = await FirebaseRepository.getCurrentUserId();
+    setState(() {});
   }
 
   @override
@@ -29,7 +36,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    User user = ModalRoute.of(context)!.settings.arguments as User;
+    User toUser = ModalRoute.of(context)!.settings.arguments as User;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -44,7 +51,7 @@ class _ChatScreenState extends State<ChatScreen> {
               radius: 24,
               child: Center(
                 child: Text(
-                  AppUtils.getInitials(user.name!),
+                  AppUtils.getInitials(toUser.name!),
                   style: TextStyle(
                     letterSpacing: 1.5,
                     fontSize: 18,
@@ -61,10 +68,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 mainAxisSize: .min,
                 children: [
                   Text(
-                    user.name!,
+                    toUser.name!,
                     style: TextStyle(fontSize: 20, fontWeight: .w600),
                   ),
-                  user.isOnline ?? false
+                  toUser.isOnline ?? false
                       ? Text("online", style: TextStyle(fontSize: 14))
                       : const SizedBox.shrink(),
                 ],
@@ -83,52 +90,103 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Column(
           children: [
             Expanded(
-              child: ListView.builder(
-                itemCount: 20,
-                itemBuilder: (context, index) {
-                  messageType = index % 2;
-                  return Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Align(
-                      alignment: messageType == 1 ? .topRight : .topLeft,
-                      child: CustomPaint(
-                        painter: BubblePainter(messageType: messageType),
-                        child: Container(
-                          width: MediaQuery.of(context).size.width - 64,
-                          padding: .only(
-                            top: 8,
-                            bottom: 2,
-                            left: messageType == 1 ? 8 : 24,
-                            right: messageType == 1 ? 24 : 8,
+              child: StreamBuilder(
+                stream: FirebaseRepository.getChatStream(
+                  currUid,
+                  toUser.userId!,
+                ),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == .waiting) {
+                    return Center(
+                      child: Column(
+                        spacing: 16,
+                        mainAxisAlignment: .center,
+                        children: [
+                          CircularProgressIndicator(
+                            color: AppColors.whatsAppGreen,
                           ),
-                          child: Column(
-                            mainAxisSize: .min,
-                            crossAxisAlignment: .end,
-                            children: [
-                              Text(
-                                "Hello, My name is Pravin Chavan. Hello, My name is Pravin Chavan. Hello, My name is Pravin Chavan. Hello, My name is Pravin Chavan.",
-                                style: TextStyle(fontSize: 18),
-                              ),
-                              Row(
-                                mainAxisSize: .min,
-                                spacing: 4,
-                                mainAxisAlignment: .end,
-                                children: [
-                                  Text("08:33"),
-                                  messageType == 1
-                                      ? Icon(
-                                          Icons.done_all,
-                                          color: Colors.blueAccent,
-                                        )
-                                      : const SizedBox.shrink(),
-                                ],
-                              ),
-                            ],
+                          Text(
+                            "Getting messages",
+                            style: TextStyle(color: AppColors.whatsAppGreen),
                           ),
-                        ),
+                        ],
                       ),
-                    ),
-                  );
+                    );
+                  } else if (snapshot.hasData &&
+                      snapshot.data!.docs.isNotEmpty) {
+                    List<Message> messages = snapshot.data!.docs
+                        .map<Message>((e) => Message.fromMap(e.data()))
+                        .toList();
+                    _isNewConversation = false;
+                    return ListView.builder(
+                      itemCount: messages.length,
+                      itemBuilder: (context, index) {
+                        Message message = messages[index];
+                        bool isSent = message.fromId == currUid;
+                        if (!isSent) {
+                          if (message.readAt == null) {
+                            FirebaseRepository.updateMessageReadStatus(
+                              currUid,
+                              toUser.userId!,
+                              message.msgId!,
+                            );
+                          }
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Align(
+                            alignment: isSent ? .topRight : .topLeft,
+                            child: CustomPaint(
+                              painter: BubblePainter(isSent: isSent),
+                              child: Container(
+                                width: message.message!.length > 40
+                                    ? MediaQuery.of(context).size.width - 64
+                                    : null,
+                                padding: .only(
+                                  top: 8,
+                                  bottom: 2,
+                                  left: isSent ? 8 : 24,
+                                  right: isSent ? 24 : 8,
+                                ),
+                                child: Column(
+                                  mainAxisSize: .min,
+                                  crossAxisAlignment: .start,
+                                  children: [
+                                    Text(
+                                      message.message ?? "",
+                                      style: TextStyle(fontSize: 18),
+                                    ),
+                                    Row(
+                                      mainAxisSize: .min,
+                                      spacing: 4,
+                                      mainAxisAlignment: .end,
+                                      children: [
+                                        Text(
+                                          AppUtils.getMessageTime(
+                                            message.sentAt ?? 0,
+                                          ),
+                                        ),
+                                        isSent
+                                            ? Icon(
+                                                Icons.done_all_rounded,
+                                                color: message.readAt != null
+                                                    ? Colors.blueAccent
+                                                    : Colors.grey.shade500,
+                                                size: 16,
+                                              )
+                                            : const SizedBox.shrink(),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  }
+                  return const SizedBox.shrink();
                 },
               ),
             ),
@@ -185,10 +243,11 @@ class _ChatScreenState extends State<ChatScreen> {
                     onPressed: () {
                       try {
                         FirebaseRepository.sendMessage(
-                          user.userId!,
+                          toUser.userId!,
                           1,
                           _tecMessage.text,
                           null,
+                          _isNewConversation,
                         );
                         _tecMessage.clear();
                       } catch (e) {
@@ -216,9 +275,9 @@ class _ChatScreenState extends State<ChatScreen> {
 }
 
 class BubblePainter extends CustomPainter {
-  final int messageType;
+  final bool isSent;
 
-  const BubblePainter({required this.messageType});
+  const BubblePainter({required this.isSent});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -234,7 +293,7 @@ class BubblePainter extends CustomPainter {
     double width = size.width;
     double height = size.height;
 
-    if (messageType == 1) {
+    if (isSent) {
       path.moveTo(radius, 0);
       path.lineTo(width - 2 * radius, 0);
       path.arcToPoint(
